@@ -18,13 +18,14 @@ void setup(){
 }
 
 void loop(){
-    Serial.print("[");
+    //Serial.print("[");
     accelloSensor();
-    Serial.print("|");
+    //Serial.print("|");
     heartBeat();
-    Serial.print("|");
+    //Serial.print("|");
     temperatureSensor();
-    Serial.print("]");    
+    //Serial.print("]");    
+    Serial.println();
     delay(10);
 }
 void temperatureSensor(){
@@ -40,7 +41,7 @@ void accelloSensor(){
     printCalculatedAccels();
     }
 }
-int heartBeat(){
+void heartBeat(){
   Signal = analogRead(PulseSensorPurplePin);  // Read the PulseSensor's value.
                                               // Assign this value to the "Signal" variable.
     if(Signal > THRESHOLD){
