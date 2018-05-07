@@ -1,7 +1,7 @@
 
 
 
-volatile int rate[10];                    // array to hold last ten IBI values
+volatile int rate[20];                    // array to hold last ten IBI values
 volatile unsigned long sampleCounter = 0;          // used to determine pulse timing
 volatile unsigned long lastBeatTime = 0;           // used to find IBI
 volatile int P =512;                      // used to find peak in pulse wave, seeded
@@ -51,7 +51,7 @@ ISR(TIMER2_COMPA_vect){                         // triggered when Timer2 counts 
 
       if(secondBeat){                        // if this is the second beat, if secondBeat == TRUE
         secondBeat = false;                  // clear secondBeat flag
-        for(int i=0; i<=9; i++){             // seed the running total to get a realisitic BPM at startup
+        for(int i=0; i<=19; i++){             // seed the running total to get a realisitic BPM at startup
           rate[i] = IBI;
         }
       }
@@ -67,14 +67,14 @@ ISR(TIMER2_COMPA_vect){                         // triggered when Timer2 counts 
       // keep a running total of the last 10 IBI values
       word runningTotal = 0;                  // clear the runningTotal variable
 
-      for(int i=0; i<=8; i++){                // shift data in the rate array
+      for(int i=0; i<=18; i++){                // shift data in the rate array
         rate[i] = rate[i+1];                  // and drop the oldest IBI value
         runningTotal += rate[i];              // add up the 9 oldest IBI values
       }
 
-      rate[9] = IBI;                          // add the latest IBI to the rate array
-      runningTotal += rate[9];                // add the latest IBI to runningTotal
-      runningTotal /= 10;                     // average the last 10 IBI values
+      rate[19] = IBI;                          // add the latest IBI to the rate array
+      runningTotal += rate[19];                // add the latest IBI to runningTotal
+      runningTotal /= 20;                     // average the last 10 IBI values
       BPM = 60000/runningTotal;               // how many beats can fit into a minute? that's BPM!
       QS = true;                              // set Quantified Self flag
       // QS FLAG IS NOT CLEARED INSIDE THIS ISR
