@@ -1,47 +1,39 @@
-#include <Wire.h>
 #include <SparkFun_MMA8452Q.h>
-#include "SparkFunTMP102.h" // Used to send and recieve specific information from our sensor
 #include <LiquidCrystal.h>
 #include <math.h>
 #define PROCESSING_VISUALIZER 1
 #define SERIAL_PLOTTER  2
-//  Variables
-int pulsePin = 0;                 // Pulse Sensor purple wire connected to analog pin 0
+#define USE_ARDUINO_INTERRUPTS true    // Set-up low-level interrupts for most acurate BPM math.
+#include <PulseSensorPlayground.h>     // Includes the PulseSensorPlayground Library.   
+#include <Wire.h> // Used to establied serial communication on the I2C bus
+#include "SparkFunTMP102.h" // Used to send and recieve specific information from our sensor
+
+const int PulseWire = 0;        
 float temperature;
+int Threshold = 550;
 
 TMP102 sensor0(0x48);
 MMA8452Q accel;
 
-// Volatile Variables, used in the interrupt service routine!
-volatile int BPM;                   // int that holds raw Analog in 0. updated every 2mS
-volatile int Signal;                // holds the incoming raw data
-volatile int IBI = 600;             // int that holds the time interval between beats! Must be seeded!
-volatile boolean Pulse = false;     // "True" when User's live heartbeat is detected. "False" when not a "live beat".
-volatile boolean QS = false;        // becomes true when Arduoino finds a beat.
 // select the pins used on the LCD panel
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
 static int outputType = SERIAL_PLOTTER;
-
+PulseSensorPlayground pulseSensor;
 
 void setup(){
   lcd.begin(16, 2);
-   lcd.noAutoscroll();
-  Serial.begin(115200);             // we agree to talk fast!
-  interruptSetup();                 // sets up to read Pulse Sensor signal every 2mS
-    accel.init();
+  lcd.noAutoscroll();
+  pulseSensor.analogInput(PulseWire);
+  pulseSensor.setThreshold(Threshold);
+  Serial.begin(115200);             
+  accel.init();
   sensor0.begin();  // Join I2C bus
   sensor0.setConversionRate(2);
   sensor0.setExtendedMode(0);
-
-
-   // IF YOU ARE POWERING The Pulse Sensor AT VOLTAGE LESS THAN THE BOARD VOLTAGE,
-   // UN-COMMENT THE NEXT LINE AND APPLY THAT VOLTAGE TO THE A-REF PIN
-//   analogReference(EXTERNAL);
+  pulseSensor.begin();
 }
 
-
-//  Where the Magic Happens
 void loop(){
   lcd.clear();
     Serial.print("$");
@@ -49,17 +41,10 @@ void loop(){
     lcd.print( "XYZ:" + accelloSensor());
     lcd.setCursor(0, 1); // bottom left
     Serial.print("_");
-    
-    serialOutput();
-
-  if (QS == true){     // A Heartbeat Was Found
-                       // BPM and IBI have been Determined
-                       // Quantified Self "QS" true when arduino finds a heartbeat
-                                // Set 'fadeRate' Variable to 255 to fade LED with pulse
-        serialOutputWhenBeatHappens();   // A Beat Happened, Output that to serial.
-        QS = false;                      // reset the Quantified Self flag for next time
-  }
-    
+    Serial.print(getBPM());
+    lcd.print("BPM: ");
+    lcd.print(getBPM());
+    lcd.print(" ");
     Serial.print("_");
     lcd.print(temperatureSensor());
     lcd.write(223);
@@ -93,4 +78,12 @@ String accelloSensor(){
     return xString + "_" + yString + "_" + zString;
 }
 
+int getBPM(){
+   int myBPM = pulseSensor.getBeatsPerMinute();  // Calls function on our pulseSensor object that returns BPM as an "int".
+  if (pulseSensor.sawStartOfBeat()) {            // Constantly test to see if "a beat happened".
+    return myBPM;     
+  }
 
+
+}
+  
